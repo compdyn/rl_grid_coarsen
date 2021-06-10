@@ -4,7 +4,7 @@
 * DuelingNet.py: The netwrok architecture that the agent utilizes (TAGCN network)
 * Lloyd_Unstructured.py: The code for the generating Lloyd agregations on grids
 * MG_Agent.py: The class for Dueling Double DQN agent
-* Optim.py: The code for running the grid coarsinging using Lloyed aggregatio
+* Optim.py: The code for running the grid coarsinging using Lloyed aggregation
 * Solve_MG.py: The code for the two grid cycle AMG algorithm
 * Unstructured.py: The class for defining grids. 
 * fem.py: Constructs a finite element discretization of a 2D Poisson problem
