@@ -1,4 +1,24 @@
-# rl_grid_coarsen
+# Optimization-Based Algebraic Multigrid Coarsening Using Reinforcement Learning
+Code for reproducing the experimental results in our paper:
+https://arxiv.org/pdf/2106.01854.pdf
+
+## Requirements
+ * Python = 3.8.10
+ * PyTorch = 1.7.1
+ * Pytorch_Geometric = 1.6.3
+ * pyamg = 4.1.0
+ * networkx = 2.6.2
+ * pygmsh = 7.1.6
+ * gmsh = 4.8.0
+ 
+ 
+
+## Training
+```
+python main.py
+```
+
+## Files
 
 * Batch_Graph.py: The class for making a batch of grids to be the input to the agent's network
 * DuelingNet.py: The netwrok architecture that the agent utilizes (TAGCN network)
