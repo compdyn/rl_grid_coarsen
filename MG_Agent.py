@@ -1,31 +1,18 @@
 import numpy as np
 import torch as T
-import os
-import torch.optim as optim
 from torch.nn import ReLU, GRU, Sequential, Linear
-import torch.nn.functional as F
-import torch.nn as nn
+
 from torch import sigmoid, softmax, relu, tanh
-import matplotlib.pyplot as plt
-from torch.autograd import Variable
+
 from collections import namedtuple, deque
-from torch_geometric.data import DataLoader
-from torch_geometric.utils import normalized_cut
-from torch_geometric.nn import (NNConv, GATConv, graclus, max_pool, max_pool_x, 
-                                global_mean_pool, BatchNorm, InstanceNorm, GraphConv,
-                                GCNConv, TAGConv, SGConv, LEConv, TransformerConv, SplineConv,
-                                GMMConv, GatedGraphConv, ARMAConv, GENConv, DeepGCNLayer,
-                                LayerNorm)
+from torch_geometric.nn import TAGConv
 import random
 import scipy as sp
 import time
 import Batch_Graph as bg
 from itertools import islice 
 import time
-#from NeuralNet import Net
 from DuelingNet import Net as Net_TAGConv
-from DuelingNet2 import Net as Net_MPNN
-from FCNet import Net as Net_FC
 
 
 class ReplayBuffer():
@@ -68,8 +55,8 @@ class ReplayBuffer():
 
 class Agent():
     
-    def __init__(self, dim, K, gamma, epsilon, lr, mem_size, batch_size, net_type, eps_min=0.01,
-                 eps_dec=1e-4, replace=10): #, chkpt_dir='tmp/unstructured_gnn'):
+    def __init__(self, dim, K, gamma, epsilon, lr, mem_size, batch_size, eps_min=0.01,
+                 eps_dec=1e-4, replace=10):
         
         #self.num_nodes = num_nodes
         self.gamma = gamma 
@@ -82,31 +69,12 @@ class Agent():
         self.eps_min = eps_min
         self.eps_dec = eps_dec
         self.replace_targe_cnt = replace
-        #self.chkpt_dir = chkpt_dir
         self.memory = ReplayBuffer(mem_size)
         self.learn_step_counter = 0
-        self.net_type = net_type
+     
+        self.q_eval = Net_TAGConv(self.dim, self.K, self.lr)
         
-        if self.net_type == 'FC':
-            self.q_eval = Net_FC(self.dim, self.K, self.lr)#, self.num_nodes) #, name='unstructured_q_eval',
-                              #chkpt_dir=self.chkpt_dir)
-            
-            self.q_targ = Net_FC(self.dim, self.K, self.lr)#, self.num_nodes) #, name='unstructured_q_targ',
-                              #chkpt_dir=self.chkpt_dir)
-                              
-        if self.net_type == 'MPNN':
-            self.q_eval = Net_MPNN(self.dim, self.K, self.lr)#, self.num_nodes) #, name='unstructured_q_eval',
-                              #chkpt_dir=self.chkpt_dir)
-            
-            self.q_targ = Net_MPNN(self.dim, self.K, self.lr)#, self.num_nodes) #, name='unstructured_q_targ',
-                              #chkpt_dir=self.chkpt_dir)
-                              
-        if self.net_type == 'TAGConv':
-            self.q_eval = Net_TAGConv(self.dim, self.K, self.lr)#, self.num_nodes) #, name='unstructured_q_eval',
-                              #chkpt_dir=self.chkpt_dir)
-            
-            self.q_targ = Net_TAGConv(self.dim, self.K, self.lr)#, self.num_nodes) #, name='unstructured_q_targ',
-                              #chkpt_dir=self.chkpt_dir)
+        self.q_targ = Net_TAGConv(self.dim, self.K, self.lr)
         
         
     def choose_action(self, state, viol_nodes):
@@ -156,7 +124,6 @@ class Agent():
         if len(self.memory.replay_buffer) < self.batch_size:
             return
         
-        # t1 = time.time()
         self.q_eval.optimizer.zero_grad()
         
         
@@ -166,77 +133,16 @@ class Agent():
             next_list_viols, next_num_viols, nodes, masks = self.memory.sample(self.batch_size)
         
         loss = 0
-        '''
-        for i in range(self.batch_size):
-            
-            
-            Q_prime = self.q_targ.forward(next_states[i])[0].detach()
-        
-            Qmodd = self.q_eval.forward(next_states[i])[0].detach()#.squeeze(0)
-            
-            if len(next_list_viols[i]) != 0:
-                
-                argmax = np.array(next_list_viols[i][Qmodd[next_list_viols[i]].argmax(0)])
-                
-            else:
-                
-                argmax = 0
-                
-            argmax = T.tensor(argmax).unsqueeze(0)
-        
-            # print ("argmax", argmax)
-            Qprime = Q_prime.gather(0,T.tensor(argmax).unsqueeze(1).long())
-            Qprime = Qprime.flatten()
-            
-            y = T.tensor(rewards[i]) + self.gamma*Qprime*T.tensor(masks[i])
-            
-            Q1 = self.q_eval.forward(states[i])[0]#.squeeze(0)
-            Q = Q1.gather(0, T.tensor(actions[i]).unsqueeze(0).unsqueeze(0).long())
-            Q = Q.squeeze(1)
-            
-            
-            loss += self.q_eval.loss(Q,y)
-            
-            # if len(next_list_viols[i]) == 0:
-            #     print (masks[i])
-            #     print (loss)
-            #     print (Q)
-            #     print (y)
-            #     print ("*********")
-            
-        
-        self.loss = loss
-        loss.backward()
-        self.q_eval.optimizer.step()  
-                
-    
-        self.q_eval.optimizer.zero_grad()
-            
-        #self.decrement_epsilon()
-    
-                
-            
-            # if loss>5:
-            #     print (list_viols[i])
-            #     print (next_list_viols[i])
-            #     print (actions[i])
-            #     print ("*********")
-            
-        
-        
-        '''
+
         b_states = bg.Batch.from_data_list(states)
         b_next_states = bg.Batch.from_data_list(next_states)
         
-        # t2 = time.time()
         
         Q_prime = self.q_targ.forward(b_next_states, b_next_states)[0].detach()
         
-        # t3 = time.time()
         
-        Qmodd = self.q_eval.forward(b_next_states, b_next_states)[0].detach()#.squeeze(0)
+        Qmodd = self.q_eval.forward(b_next_states, b_next_states)[0].detach()
         
-        # t4 = time.time()
         
         Qmodd = Qmodd.flatten().tolist()
         
@@ -247,11 +153,9 @@ class Agent():
         Q      = T.zeros(self.batch_size) 
         argmax = []
         
-        # t5 = time.time()
         
-        Q1 = self.q_eval.forward(b_states, b_states)[0]#.squeeze(0)
+        Q1 = self.q_eval.forward(b_states, b_states)[0]
         
-        # t6 = time.time()
         idx_in_batch = 0
         for i in range(self.batch_size):
             
@@ -273,7 +177,6 @@ class Agent():
                 argmax = 0
             
             Q[i]      = Q1.gather(0, T.tensor(actions[i]).unsqueeze(0).unsqueeze(0).long())
-            #print (Q_prime.shape)
             
             
         Qprime.flatten()
@@ -283,39 +186,17 @@ class Agent():
         
     
         loss = self.q_eval.loss(Q,y)
-        # if loss>100:
-            
-        #     print (Q)
-        #     print (y)
-            
-        #     kiri = T.argmin(Q)
-        #     print(states[kiri].x)
-        #     print(states[kiri].edge_attr)
+
             
         self.loss = loss
-        
-        # t7 = time.time()
-        
+                
         loss.backward()
-        
-        # t8 = time.time()
-        
+                
         self.q_eval.optimizer.step()  
-        
-        # t9 = time.time()
-        
+                
         self.learn_step_counter += 1
         
-        
-     
-        # print ("T21", t2-t1)
-        # print ("T32", t3-t2)
-        # print ("T43", t4-t3)
-        # print ("T54", t5-t4)
-        # print ("T65", t6-t5)
-        # print ("T76", t7-t6)
-        # print ("T87", t8-t7)
-        # print ("T98", t9-t8)
+
         
         
         

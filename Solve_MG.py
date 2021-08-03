@@ -135,11 +135,6 @@ def nr_vcycle_amgr(tot_num_loop, n_cut, min_dominance, level, no_prerelax, no_po
             
         grid_list.append(grid_)
         
-        # grid_.plot()
-        # plt.show()
-            
-        # fpts[i] = np.load('Fpts'+str(i)+'.npy', allow_pickle=True).tolist()
-        # cpts[i] = np.load('Cpts'+str(i)+'.npy', allow_pickle=True).tolist()
             
         fpts[i] = grid_.fine_nodes
         cpts[i] = grid_.coarse_nodes
@@ -164,14 +159,6 @@ def nr_vcycle_amgr(tot_num_loop, n_cut, min_dominance, level, no_prerelax, no_po
         
         Bff[i] = A[i][np.ix_(fpts[i], fpts[i])]
         
-        #Ali Commented#
-        #B[i] = A[i][fcpts_perm[i][:, None], fcpts_perm[i]]
-        ###############
-       
-        # B[i][:,0:lenfpts[i]][0:lenfpts[i],:] = A[i][:,fpts[i]][fpts[i],:]
-        # B[i][:,0:lenfpts[i]][ lenfpts[i]:,:] = A[i][:,fpts[i]][cpts[i],:]
-        # B[i][:,lenfpts[i]:][ 0:lenfpts[i],:] = A[i][:,cpts[i]][fpts[i],:]
-        # B[i][:,lenfpts[i]:][ lenfpts[i]:,:] = A[i][:,cpts[i]][cpts[i],:]
         
         
         Bff[i] = A[i][np.ix_(fpts[i], fpts[i])]
@@ -185,20 +172,11 @@ def nr_vcycle_amgr(tot_num_loop, n_cut, min_dominance, level, no_prerelax, no_po
         print (min(np.array(Dff[0]).flatten()))
         Dffinv[i] = 1.0 / Dff[i]
         
-        #Dffinv[i] = np.array(1.0 / Dff[i])[0]
-
         ## Minv from reduction based AMG (REL)
         Minv[i] = sparse.csr_matrix(A[i].shape)
         Minv[i][np.ix_(Fl,Fl)]= sigma*Dffinv[i]
 
-        ## Form P, the interpolation matrix
-        
-        ##Ali Commented##
-        # DinvBfc[i] = -B[i][0:lenfpts[i], lenfpts[i]:]
-        
-        #################
-        
-        ##Ali Added##
+
         DinvBfc[i] = -B[i][np.ix_(Fl, Cl)]
         
         
@@ -216,24 +194,12 @@ def nr_vcycle_amgr(tot_num_loop, n_cut, min_dominance, level, no_prerelax, no_po
         ## form A2h
         A[i+1] = (P[i].transpose()).dot(B[i].dot(P[i]))
         
-        #count_nonzeros_A[i+1] = A[i+1].count_nonzero()
-        #count_grid_points[i+1] = A[i+1].shape[0]
-
-    
   
-            
         if abs(np.linalg.eigvals(A[-1].toarray()).min())<1e-6:
             
             A[-1][-1] = sparse.csr_matrix(A[-1][-1].toarray()*0+1)
                 
-    # for i in range(len(B)):
-            
-    #         if abs(np.linalg.eigvals(B[i].toarray()).min())<1e-6:
-                
-    #             B[i][-1] = sparse.csr_matrix(B[i][-1].toarray()*0+1) 
-    #             print("KKHHHHAAAIII", abs(np.linalg.eigvals(B[i].toarray()).min()))
-                
-              
+
     ## Exact solution
     xexact = np.zeros(lenB[0])
 
@@ -241,8 +207,7 @@ def nr_vcycle_amgr(tot_num_loop, n_cut, min_dominance, level, no_prerelax, no_po
     random_state = np.random.RandomState(seed=5)
     x[0] = random_state.normal(size=lenB[0])
     
-    #x[0] = np.random.normal(size=lenB[0])
-    #x[0] = np.zeros(lenB[0])
+
     f[0] = np.zeros(lenB[0])
     b[0][0:lenfpts[0]] = f[0][fpts[0]]
     b[0][lenfpts[0]:lenB[0]] = f[0][cpts[0]]
@@ -251,7 +216,6 @@ def nr_vcycle_amgr(tot_num_loop, n_cut, min_dominance, level, no_prerelax, no_po
     list_v = []
     list_x = []
     mean_v = []
-    #1000 for 5617, 22241; 800 for 1433; for dom2: all 1000
     
     A_inv = sla.inv(A[-1])
 
@@ -385,19 +349,10 @@ def nr_vcycle_amgr(tot_num_loop, n_cut, min_dominance, level, no_prerelax, no_po
             
             v[ij] = v[ij] - v[ij].mean()
         
-    #print('convergence factor using consecutive norms:', ratio_norm)
     
     conv_fac_ini_fin = (two_norm_n_list[-1]/two_norm_n_list[-10])**(1/10)
     lastv = v[0]-v[0].mean()
     
-    # plt.plot(np.arange(0, 1, 1/xexact.shape[0]), lastv)
-    # plt.ylim([-2, 2])
-    # plt.show()
-    
-    # plt.plot(np.arange(0,len(mean_v)), mean_v)
-    # plt.title(Greedy)
-    # plt.ylim([-2, 2])
-    # plt.show()
     
     print('convergence factor using init and final:', conv_fac_ini_fin)
     Grid_Complexity = 0
@@ -414,220 +369,4 @@ def nr_vcycle_amgr(tot_num_loop, n_cut, min_dominance, level, no_prerelax, no_po
     return conv_fac_ini_fin, convfacts, Grid_Complexity, Operator_Complexity
     
 
-list_RL_CRate  = []
-list_GR_CRate  = []
-list_GR_Gcompx = []
-list_RL_Gcompx = []
-list_GR_Gcompx = []
-list_RL_Ocompx = []
-list_GR_Ocompx = []
-
-
-dict_rate_complexity = torch.load('rate_and_complx.pth')
-
-# dict_rate_complexity["Convex"] = {}
-
-
-
-
-#dict_rate_complexity["Graded_mesh"] = {}
-# l = [2,8,10,11]
-# for i in l:
-#     print ("convex, number ",i)
-#     precalc = i
-
-    
-#     grid_ = torch.load('Test_Graphs/Hand_crafted/Grids/Graph_'+str(precalc))
-#     grid_.A = -grid_.A
-#     torch.save(grid_, 'Test_Graphs/Hand_crafted/Grids/Graph_'+str(precalc))
-    
-#     rl = torch.load('Test_Graphs/Hand_crafted/Grids/rl_1L_'+str(precalc))
-#     rl.A = -rl.A
-#     torch.save(rl, 'Test_Graphs/Hand_crafted/Grids/rl_1L_'+str(precalc))
-    
-#     gr = torch.load('Test_Graphs/Hand_crafted/Grids/gr_1L_'+str(precalc))
-#     gr.A = -gr.A
-#     torch.save(gr, 'Test_Graphs/Hand_crafted/Grids/gr_1L_'+str(precalc))
-    
-'''
-for i in range(1,13):
-    print ("Graded_mesh, number ",i)
-    precalc = i
-    n_loop  = 100
-    n_cut   = 10
-    
-    grid_ = torch.load('Test_Graphs/Smoothly/Graph'+str(precalc))
-    grid_gr = copy.deepcopy(grid_)
-    
-    num_nodes = grid_.num_nodes
-    
-    rl_cr, rl_cr_list, RL_Gcompx, RL_Ocompx = nr_vcycle_amgr(n_loop, n_cut, 0.56, 2, 2, 2, grid_, \
-                                                 precalc, \
-                                                     'Test_Graphs/Smoothly/RL_1L_'+str(precalc), Greedy=False)
-    
-    
-    gr_cr, gr_cr_list, GR_Gcompx, GR_Ocompx = nr_vcycle_amgr(n_loop, n_cut,0.56, 2, 2, 2, grid_gr, \
-                                                 precalc, \
-                                                     'Test_Graphs/Smoothly/GR_1L_'+str(precalc), Greedy=True)
-    
-    dict_rate_complexity['Graded_mesh'][i] = {'num_nodes':num_nodes, 'rl_cr': rl_cr, 'gr_cr': gr_cr, \
-                                               'RL_Gcompx': RL_Gcompx, 'GR_Gcompx':GR_Gcompx,
-                                 'RL_Ocompx':RL_Ocompx, 'GR_Ocompx':GR_Ocompx}
-    
-    torch.save(dict_rate_complexity, 'rate_and_complx.pth')
-    
-    
-
-dict_rate_complexity["Wide_valence"] = {}
-for i in range(1,13):
-    
-    print ("Wide_valence, number ",i)
-    precalc = i
-    n_loop  = 100
-    n_cut   = 10
-    
-    grid_ = torch.load('Test_Graphs/test_STD/Graph'+str(precalc))
-    grid_gr = copy.deepcopy(grid_)
-    
-    num_nodes = grid_.num_nodes
-    
-    rl_cr, rl_cr_list, RL_Gcompx, RL_Ocompx = nr_vcycle_amgr(n_loop, n_cut, 0.56, 2, 2, 2, grid_, \
-                                                 precalc, \
-                                                     'Test_Graphs/test_STD/RL_1L_'+str(precalc), Greedy=False)
-    
-    gr_cr, gr_cr_list, GR_Gcompx, GR_Ocompx = nr_vcycle_amgr(n_loop, n_cut,0.56, 2, 2, 2, grid_gr, \
-                                                 precalc, \
-                                                     'Test_Graphs/test_STD/GR_1L_'+str(precalc), Greedy=True)
-    
-    dict_rate_complexity['Wide_valence'][i] = {'num_nodes':num_nodes, 'rl_cr': rl_cr, 'gr_cr': gr_cr, \
-                                               'RL_Gcompx': RL_Gcompx, 'GR_Gcompx':GR_Gcompx,
-                                 'RL_Ocompx':RL_Ocompx, 'GR_Ocompx':GR_Ocompx}
-    
-    torch.save(dict_rate_complexity, 'rate_and_complx.pth')
-    
-    '''
-#dict_rate_complexity["Structured"] = {}
-for i in range(1,11):
-    
-    print ("Structured, number ",i)
-    precalc = i
-    n_loop  = 100
-    n_cut   = 10
-    
-    grid_ = torch.load('Test_Graphs/Structured/Graph'+str(precalc))
-    grid_gr = copy.deepcopy(grid_)
-    
-    num_nodes = grid_.num_nodes
-    
-    rl_cr, rl_cr_list, RL_Gcompx, RL_Ocompx = nr_vcycle_amgr(n_loop, n_cut, 0.56, 2, 2, 2, grid_, \
-                                                 precalc, \
-                                                     'Test_Graphs/Structured/RL_1L_'+str(precalc), Greedy=False)
-    
-    gr_cr, gr_cr_list, GR_Gcompx, GR_Ocompx = nr_vcycle_amgr(n_loop, n_cut,0.56, 2, 2, 2, grid_gr, \
-                                                 precalc, \
-                                                     'Test_Graphs/Structured/GR_1L_'+str(precalc), Greedy=True)
-    
-    dict_rate_complexity['Structured'][i] = {'num_nodes':num_nodes, 'rl_cr': rl_cr, 'gr_cr': gr_cr, \
-                                               'RL_Gcompx': RL_Gcompx, 'GR_Gcompx':GR_Gcompx,
-                                 'RL_Ocompx':RL_Ocompx, 'GR_Ocompx':GR_Ocompx}
-    
-    torch.save(dict_rate_complexity, 'rate_and_complx.pth')
-    
-
-'''
-
-dict_rate_complexity["Aspect_Ratio"] = {}
-
-
-for i in range(1,13):
-    
-    print ("Aspect_Ratio, number ",i)
-    precalc = i
-    n_loop  = 100
-    n_cut   = 10
-    
-    grid_ = torch.load('Test_Graphs/Aspect_Ratio/Graph_'+str(precalc))
-    grid_gr = copy.deepcopy(grid_)
-    
-    num_nodes = grid_.num_nodes
-    
-    rl_cr, rl_cr_list, RL_Gcompx, RL_Ocompx = nr_vcycle_amgr(n_loop, n_cut, 0.56, 2, 2, 2, grid_, \
-                                                 precalc, \
-                                                     'Test_Graphs/Aspect_Ratio/rl_1L_'+str(precalc), Greedy=False)
-    
-    gr_cr, gr_cr_list, GR_Gcompx, GR_Ocompx = nr_vcycle_amgr(n_loop, n_cut,0.56, 2, 2, 2, grid_gr, \
-                                                 precalc, \
-                                                     'Test_Graphs/Aspect_Ratio/gr_1L_'+str(precalc), Greedy=True)
-    
-    dict_rate_complexity['Aspect_Ratio'][i] = {'num_nodes':num_nodes, 'rl_cr': rl_cr, 'gr_cr': gr_cr, \
-                                               'RL_Gcompx': RL_Gcompx, 'GR_Gcompx':GR_Gcompx,
-                                 'RL_Ocompx':RL_Ocompx, 'GR_Ocompx':GR_Ocompx}
-    
-    torch.save(dict_rate_complexity, 'rate_and_complx.pth')
-    
-
-
-dict_rate_complexity["Convex"] = {}
-
-
-for i in range(1,13):
-    i = 11
-    print ("Convex, number ",i)
-    precalc = i
-    n_loop  = 100
-    n_cut   = 10
-    
-    grid_ = torch.load('Test_Graphs/Hand_crafted/Grids/Graph_'+str(precalc))
-    grid_gr = copy.deepcopy(grid_)
-    
-    num_nodes = grid_.num_nodes
-    
-    rl_cr, rl_cr_list, RL_Gcompx, RL_Ocompx = nr_vcycle_amgr(n_loop, n_cut, 0.56, 2, 2, 2, grid_, \
-                                                 precalc, \
-                                            'Test_Graphs/Hand_crafted/Grids/rl_1L_'+str(precalc), Greedy=False)
-    
-        
-    gr_cr, gr_cr_list, GR_Gcompx, GR_Ocompx = nr_vcycle_amgr(n_loop, n_cut,0.56, 2, 2, 2, grid_gr, \
-                                                 precalc, \
-                                            'Test_Graphs/Hand_crafted/Grids/gr_1L_'+str(precalc), Greedy=True)
-    
-    dict_rate_complexity['Convex'][i] = {'num_nodes':num_nodes, 'rl_cr': rl_cr, 'gr_cr': gr_cr, \
-                                               'RL_Gcompx': RL_Gcompx, 'GR_Gcompx':GR_Gcompx,
-                                 'RL_Ocompx':RL_Ocompx, 'GR_Ocompx':GR_Ocompx}
-    
-    torch.save(dict_rate_complexity, 'rate_and_complx.pth')
-    
-
-dict_rate_complexity["Different_size"] = {}
-
-for j in range(45):
-    i = j+1
-    if i!=35 and i!=36:
-        
-        print ("Different_size, number ",i)
-        precalc = i
-        n_loop  = 100
-        n_cut   = 10
-        
-        grid_ = torch.load('Test_Graphs/Auto_generated/graph_'+str(precalc))
-        
-        num_nodes = grid_.num_nodes
-        
-        grid_gr = copy.deepcopy(grid_)
-        
-        rl_cr, rl_cr_list, RL_Gcompx, RL_Ocompx = nr_vcycle_amgr(n_loop, n_cut, 0.56, 2, 2, 2, grid_, \
-                                                 precalc, \
-                                                     'Test_Graphs/Auto_generated/rl_1L_'+str(precalc), Greedy=False)
-    
-        gr_cr, gr_cr_list, GR_Gcompx, GR_Ocompx = nr_vcycle_amgr(n_loop, n_cut,0.56, 2, 2, 2, grid_gr, \
-                                                 precalc, \
-                                                     'Test_Graphs/Auto_generated/gr_1L_'+str(precalc), Greedy=True)
-        
-        dict_rate_complexity['Different_size'][i] = {'num_nodes':num_nodes, 'rl_cr': rl_cr, 'gr_cr': gr_cr, \
-                                   'RL_Gcompx': RL_Gcompx, 'GR_Gcompx':GR_Gcompx,
-                                     'RL_Ocompx':RL_Ocompx, 'GR_Ocompx':GR_Ocompx}
-        
-        torch.save(dict_rate_complexity, 'rate_and_complx.pth')
-    
-'''  
 

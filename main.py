@@ -3,10 +3,7 @@ from MG_Agent import Agent
 #from utils import plot_learning_curves
 import Unstructured as uns
 import time
-import matplotlib.pyplot as plt
-import random
 from scipy.spatial import ConvexHull, convex_hull_plot_2d
-import pygmsh
 from  Unstructured import MyMesh, grid, rand_Amesh_gen, rand_grid_gen, structured
 import fem 
 from torch.utils.tensorboard import SummaryWriter
@@ -17,16 +14,10 @@ import copy
 
 writer= SummaryWriter("runs")
 
-brk = False
 
 if __name__ == '__main__':
     
-    min_sofar = 100
     done = False
-    #grid_ = rand_grid_gen(mesh)
-    
-    #num_nodes = grid_.num_nodes
-    #grid_.plot()
     load_ckeckpoint = False
     K = 4
     learning_per_step = 5
@@ -38,13 +29,7 @@ if __name__ == '__main__':
     loss_list = []
     iterat = 0
     
-    #const_grid = rand_grid_gen(None)
-    #T.save(const_grid, 'test_FC_grid1')
-    #nn = const_grid.num_nodes
-    
-    #loss = []
-    
-    #writer.add_graph(agent.q_eval, input_to_model=rand_grid_gen(mesh).data)
+
     for lr in lr_list:
         for dim in dim_list:
             
@@ -60,18 +45,7 @@ if __name__ == '__main__':
             
             
             for i in range(num_steps):
-                
-                if i == 2000:
-                    agent.lr = lr/2
-                    
-                if i == 5000:
-                    agent.lr = lr/10
-                    
-                if i == 7500:
-                    agent.lr = lr/20
-                    
 
-                    
                 done = False
                 g_idx = np.random.randint(0,50)
                 
@@ -103,65 +77,33 @@ if __name__ == '__main__':
                             loss = loss*agent.memory.mem_size/len(agent.memory.replay_buffer)
                             loss_list.append(loss)
                             writer.add_scalar("training loss", loss, iterat)
-                                #writer.add_histogram('q_eval GNN conv', agent.q_eval.nn1[0].weight)
-                                #loss.append(agent.loss)
-                                #print (count)
-                                # if agent.epsilon<0.05 and np.mean(loss_list[-250:])<1:
-                                #     brk = True
-                                #     done = True
+                   
                             iterat += 1
                             
                     count += 1
-                # if agent.epsilon<0.05 and brk == True:
-                #     print ("Minimum loss reached !!!")
-                #     break
-            
+          
                 if i % 10 == 0:
                     print ("Epsilon is = ", agent.epsilon)
                     print (i)
                 
-                if np.mean(loss_list[-100:]) < min_sofar:
-                    
-                    min_sofar = np.mean(loss_list[-100:]) 
-                    #T.save(agent.q_eval.state_dict(), "best_agent.pth")
+        
                 if i % 100 == 0:
-                    T.save(agent.q_eval.state_dict(), "Models/MPNN/Dueling_MPNN"+str(i)+".pth")
+                    T.save(agent.q_eval.state_dict(), "Model"+str(i)+".pth")
                     
-            # writer.add_hparams({'LR': lr, 'dim': dim}\
-            #                     , {'Loss': np.mean(loss_list[-int(len(loss_list)/4):])})
-            
-                                
-            # loss_list = loss[np.nonzero(loss)[0]]
-            # count = [i+1 for i in range(len(loss_list))]
-            # plt.plot(count, loss_list)
-            # plt.xlabel('learning iteration')
-            # plt.ylabel('MSE loss')
-            # plt.yscale('log')
-            # plt.show()
+     
 
 
-def test(net_type, dim, costum_grid):
+def test(K, dim, costum_grid, model_dir):
     
     K= 4
     agent = Agent(dim = dim, K = K, gamma = 1, epsilon = 1, \
-                  lr= 0.001, mem_size = 5000, batch_size = 32,  net_type = net_type,\
-                      eps_min = 0.01 , eps_dec = 1.333/5000, replace=10)
-    #agent.q_eval.load_state_dict(T.load('random_trained_agent.pth'))
-    #agent.q_eval.load_state_dict(T.load('Dueling_1_agent.pth'))
-    
-    if net_type == 'TAGConv':
-        agent.q_eval.load_state_dict(T.load('Models/Dueling_batch_train_final.pth'))
-        #agent.q_eval.load_state_dict(T.load('Models/MPNN/Dueling_MPNN900.pth'))
-        #agent.q_eval.load_state_dict(T.load('Models/MPNN/Dueling_MPNN9900.pth'))
-        #agent.q_eval.load_state_dict(T.load('Models/New_TAG/Dueling_TAG9900.pth'))
+                  lr= 0.001, mem_size = 5000, batch_size = 32,\
+                      eps_min = 0.01 , eps_dec = 1.25/5000, replace=10)
+
+    agent.q_eval.load_state_dict(T.load(model_dir))
+
         
-    if net_type == 'MPNN':
-        
-        agent.q_eval.load_state_dict(T.load('Models/MPNN/Dueling_MPNN1800.pth'))
-        
-    if net_type == 'FC':
-        agent.q_eval.load_state_dict(T.load('FC_agent_1.pth'))
-        
+
     agent.epsilon = 0
     
     Q_list = []
@@ -226,7 +168,7 @@ def node_hop_neigh(K, node, list_neighbours):
     
     return list(set_all)
  
-def regional_update_test (given_grid, net_type,  Test_greedy = True):
+def regional_update_test (given_grid, K, model_dir, Test_greedy = True):
     
     if given_grid == None:
         grid_ = rand_grid_gen(None)
@@ -238,24 +180,14 @@ def regional_update_test (given_grid, net_type,  Test_greedy = True):
         
         grid_gr  = copy.deepcopy(grid_)
 
-    K=4
     
     agent = Agent(dim = 32, K = K, gamma = 1, epsilon = 1, \
-                      lr= 0.001, mem_size = 5000, batch_size = 64, net_type = net_type,\
+                      lr= 0.001, mem_size = 5000, batch_size = 64, \
                           eps_min = 0.01 , eps_dec = 1.333/5000, replace=10)
     
-    K = 4
     
-    
-    if net_type == 'TAGConv':
-        #agent.q_eval.load_state_dict(T.load('Models/Dueling_batch_train_final.pth'))
-        #agent.q_eval.load_state_dict(T.load('Dueling_1_agent.pth'))
-        agent.q_eval.load_state_dict(T.load('Models/MPNN/Dueling_MPNN900.pth'))
-        #agent.q_eval.load_state_dict(T.load('Models/New_TAG/Dueling_TAG9900.pth'))
+    agent.q_eval.load_state_dict(T.load(model_dir))
         
-    if net_type == 'MPNN':
-        
-        agent.q_eval.load_state_dict(T.load('Models/MPNN/Dueling_MPNN1800.pth'))
     
     agent.epsilon = 0
     
