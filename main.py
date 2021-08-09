@@ -49,7 +49,7 @@ if __name__ == '__main__':
                 done = False
                 g_idx = np.random.randint(0,50)
                 
-                grid_ = copy.deepcopy(T.load('Train_Graphs/Graph'+str(g_idx)))
+                grid_ = rand_grid_gen(None)
                 agent.decrement_epsilon()
                 while not done:
                     
