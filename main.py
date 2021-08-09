@@ -6,14 +6,13 @@ import time
 from scipy.spatial import ConvexHull, convex_hull_plot_2d
 from  Unstructured import MyMesh, grid, rand_Amesh_gen, rand_grid_gen, structured
 import fem 
-from torch.utils.tensorboard import SummaryWriter
+#from torch.utils.tensorboard import SummaryWriter
 import sys
 import torch as T
 from Scott_greedy import greedy_coarsening
 import copy
 
-writer= SummaryWriter("runs")
-
+#writer= SummaryWriter("runs")
 
 if __name__ == '__main__':
     
@@ -21,7 +20,7 @@ if __name__ == '__main__':
     load_ckeckpoint = False
     K = 4
     learning_per_step = 5
-    num_steps = 1000
+    num_steps = 10000
     learn_every = 4
     count = 0
     dim_list = [32]
@@ -33,8 +32,8 @@ if __name__ == '__main__':
     for lr in lr_list:
         for dim in dim_list:
             
-            agent = Agent(dim = 32, K = K, gamma = 1, epsilon = 1, \
-                  lr= lr, mem_size = 5000, batch_size = 32,  net_type = 'TAGConv',\
+            agent = Agent(dim = 32, K = K, gamma = 1, epsilon = 1,
+                  lr= lr, mem_size = 5000, batch_size = 32,
                       eps_min = 0.01 , eps_dec = 1.25/num_steps, replace=10)
             loss_list = []
             
@@ -76,7 +75,7 @@ if __name__ == '__main__':
                             loss = agent.loss.item()
                             loss = loss*agent.memory.mem_size/len(agent.memory.replay_buffer)
                             loss_list.append(loss)
-                            writer.add_scalar("training loss", loss, iterat)
+                            #writer.add_scalar("training loss", loss, iterat)
                    
                             iterat += 1
                             
@@ -204,14 +203,16 @@ def regional_update_test (given_grid, K, model_dir, Test_greedy = True):
     
     list_neighbours = grid_.list_neighbours
     ##get k-hop neighbours of every violating node
-
+    all_viols = grid_.violating_nodes
     while not done:
-        
-        node_max = grid_.violating_nodes[T.argmax(adv_tensor[grid_.violating_nodes])]
-        grid_.coarsen_node(node_max)
-        
-        k_hop  = node_hop_neigh(K, node_max, list_neighbours)
-        k2_hop = node_hop_neigh(2*K, node_max, list_neighbours)
+
+        node_max = all_viols [T.argmax(adv_tensor[all_viols ])]
+
+        newly_removed = grid_.coarsen_node(node_max)
+        all_viols = list(set(all_viols)-set(newly_removed))
+        #print (len(list_neighbours),list_neighbours, node_max)
+        k_hop  = node_hop_neigh(K, node_max, list_neighbours[0])
+        k2_hop = node_hop_neigh(2*K, node_max, list_neighbours[0])
 
         observation = grid_.subgrid(k2_hop)
 
@@ -221,10 +222,10 @@ def regional_update_test (given_grid, K, model_dir, Test_greedy = True):
             _, advantage = agent.q_eval.forward(observation)
             
         update_list = [k2_hop.index(aa) for aa in k_hop]
-        
+
         adv_tensor[k_hop] = advantage[update_list]
 
-        done = True if len(grid_.violating_nodes) == 0 else False
+        done = True if len(all_viols) == 0 else False
       
     T_end  = time.time()
     computation_time = T_end-T_start
