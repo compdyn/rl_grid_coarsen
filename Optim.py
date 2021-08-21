@@ -261,7 +261,7 @@ def lloyd_aggregation(C, ratio=0.03, distance='unit', maxiter=10):
 sz_list = [100*(i+1) for i in range(1)]
 K = 4
 agent = Agent(dim = 32, K = K, gamma = 1, epsilon = 1, \
-                      lr= 0.001, mem_size = 5000, net_type = 'TAGConv', batch_size = 64,  \
+                      lr= 0.001, mem_size = 5000, batch_size = 64,  \
                           eps_min = 0.01 , eps_dec = 1.333/5000, replace=10)
 
 agent.q_eval.load_state_dict(T.load('Models/MPNN/Dueling_MPNN900.pth'))
