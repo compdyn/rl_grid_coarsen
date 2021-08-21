@@ -257,7 +257,7 @@ def lloyd_aggregation(C, ratio=0.03, distance='unit', maxiter=10):
     return AggOp, seeds, col
 
 
-
+'''
 sz_list = [100*(i+1) for i in range(1)]
 K = 4
 agent = Agent(dim = 32, K = K, gamma = 1, epsilon = 1, \
@@ -269,7 +269,7 @@ agent.q_eval.load_state_dict(T.load('Models/MPNN/Dueling_MPNN900.pth'))
 agent.epsilon = 0
 list_size = []
 list_time  = []
-
+'''
 
 def Post_processing(num_iter, agent, grid_, K):
     
