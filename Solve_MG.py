@@ -107,7 +107,7 @@ def nr_vcycle_amgr(tot_num_loop, n_cut, min_dominance, level, no_prerelax, no_po
     ## form all of the required matrices of different levels
     
     agent = Agent(dim = 32, K = 12, gamma = 1, epsilon = 1, \
-                      lr= 0.001, mem_size = 5000, net_type = 'TAGConv', batch_size = 64,  \
+                      lr= 0.001, mem_size = 5000,  batch_size = 64,  \
                           eps_min = 0.01 , eps_dec = 1.333/5000, replace=10)
 
     agent.q_eval.load_state_dict(torch.load('Models/Dueling_batch_train_final.pth'))
