@@ -1,4 +1,4 @@
-# Optimization-Based Algebraic Multigrid Coarsening Using Reinforcement Learning
+# Optimization-Based Algebraic Multigrid Coarsening Using Reinforcement Learning (NeurIPS 2021)
 Code for reproducing the experimental results in our paper:
 https://arxiv.org/pdf/2106.01854.pdf
 
